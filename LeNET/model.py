@@ -17,7 +17,7 @@ class LeNet(nn.Module):
         self.flatten = nn.Flatten()#5*5*16=400个neurons
         self.f5 = nn.Linear(400, 120)
         self.f6 = nn.Linear(120, 84)
-        self.f7 = nn.Linear(84, 10)#手写识别十个数字
+        self.f7 = nn.Linear(84, 10)#衣服识别，fashionmnist
     # 接着是前向传播
     def forward(self, x):
         x = self.c1(x) #c1(),传入x

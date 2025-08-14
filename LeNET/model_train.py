@@ -20,19 +20,21 @@ def train_val_data_process():
 
     train_data, val_data = Data.random_split(train_data, [round(0.8*len(train_data)), round(0.2*len(train_data))])
     train_dataloader = Data.DataLoader(dataset=train_data,
-                                       batch_size=32,
+                                       batch_size=128,
                                        shuffle=True,
-                                       num_workers=2)
+                                       num_workers=8)
 
     val_dataloader = Data.DataLoader(dataset=val_data,
-                                       batch_size=32,
+                                       batch_size=128,
                                        shuffle=True,
-                                       num_workers=2)
+                                       num_workers=8)
 
     return train_dataloader, val_dataloader
 
-
+#数据集定义好了，那就接下来定义训练的过程-
 def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
+    flag = torch.cuda.is_available()
+    print(flag)  # 返回true为安装成功
     # 设定训练所用到的设备，有GPU用GPU没有GPU用CPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # 使用Adam优化器，学习率为0.001
@@ -76,7 +78,7 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
         # 验证集样本数量
         val_num = 0
 
-        # 对每一个mini-batch训练和计算
+        # 对每一个mini-batch训练和计算（training）
         for step, (b_x, b_y) in enumerate(train_dataloader):
             # 将特征放入到训练设备中
             b_x = b_x.to(device)
@@ -87,7 +89,7 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
 
             # 前向传播过程，输入为一个batch，输出为一个batch中对应的预测
             output = model(b_x)
-            # 查找每一行中最大值对应的行标
+            # 查找每一行中最大值x对应的label
             pre_lab = torch.argmax(output, dim=1)
             # 计算每一个batch的损失函数
             loss = criterion(output, b_y)
@@ -104,6 +106,7 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
             train_corrects += torch.sum(pre_lab == b_y.data)
             # 当前用于训练的样本数量
             train_num += b_x.size(0)
+        #validation过程
         for step, (b_x, b_y) in enumerate(val_dataloader):
             # 将特征放入到验证设备中
             b_x = b_x.to(device)
@@ -126,8 +129,10 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
             # 当前用于验证的样本数量
             val_num += b_x.size(0)
 
+
         # 计算并保存每一次迭代的loss值和准确率
-        # 计算并保存训练集的loss值
+        # 计算并保存训练集的loss值，train_loss / train_num 就是整个训练集在这个 epoch 的平均 loss（每个样本的平均损失）
+        #train_loss_all 是一个列表，用来保存每个 epoch 的训练集 loss，方便后面画曲线。
         train_loss_all.append(train_loss / train_num)
         # 计算并保存训练集的准确率
         train_acc_all.append(train_corrects.double().item() / train_num)
@@ -136,12 +141,12 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
         val_loss_all.append(val_loss / val_num)
         # 计算并保存验证集的准确率
         val_acc_all.append(val_corrects.double().item() / val_num)
-
+        #保留小数点后面四位数，打印列表里面的最后一个值
         print("{} train loss:{:.4f} train acc: {:.4f}".format(epoch, train_loss_all[-1], train_acc_all[-1]))
         print("{} val loss:{:.4f} val acc: {:.4f}".format(epoch, val_loss_all[-1], val_acc_all[-1]))
 
         if val_acc_all[-1] > best_acc:
-            # 保存当前最高准确度
+            # preserve当前最高准确度
             best_acc = val_acc_all[-1]
             # 保存当前最高准确度的模型参数
             best_model_wts = copy.deepcopy(model.state_dict())
@@ -151,8 +156,8 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
         print("训练和验证耗费的时间{:.0f}m{:.0f}s".format(time_use//60, time_use%60))
 
     # 选择最优参数，保存最优参数的模型
-    torch.save(best_model_wts, "C:/Users/86159/Desktop/LeNet/best_model.pth")
-
+    torch.save(best_model_wts, "D:/pytorch learn_win_torch2_8withcuda_126/pytorch_learning/LeNET/best_model.pth")
+    #这个frame好像一个excel表格
     train_process = pd.DataFrame(data={"epoch":range(num_epochs),
                                        "train_loss_all":train_loss_all,
                                        "val_loss_all":val_loss_all,
@@ -165,13 +170,13 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
 def matplot_acc_loss(train_process):
     # 显示每一次迭代后的训练集和验证集的损失函数和准确率
     plt.figure(figsize=(12, 4))
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 2, 1)#一行两列的第一张图
     plt.plot(train_process['epoch'], train_process.train_loss_all, "ro-", label="Train loss")
     plt.plot(train_process['epoch'], train_process.val_loss_all, "bs-", label="Val loss")
     plt.legend()
     plt.xlabel("epoch")
     plt.ylabel("Loss")
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 2, 2)#一行两列的第二张图
     plt.plot(train_process['epoch'], train_process.train_acc_all, "ro-", label="Train acc")
     plt.plot(train_process['epoch'], train_process.val_acc_all, "bs-", label="Val acc")
     plt.xlabel("epoch")
@@ -186,5 +191,5 @@ if __name__ == '__main__':
     # 加载数据集
     train_data, val_data = train_val_data_process()
     # 利用现有的模型进行模型的训练
-    train_process = train_model_process(LeNet, train_data, val_data, num_epochs=20)
+    train_process = train_model_process(LeNet, train_data, val_data, num_epochs=30)
     matplot_acc_loss(train_process)
