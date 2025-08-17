@@ -20,14 +20,14 @@ def train_val_data_process():
 
     train_data, val_data = Data.random_split(train_data, [round(0.8*len(train_data)), round(0.2*len(train_data))])
     train_dataloader = Data.DataLoader(dataset=train_data,
-                                       batch_size=28,
+                                       batch_size=32,
                                        shuffle=True,
-                                       num_workers=2)
+                                       num_workers=4)
 
     val_dataloader = Data.DataLoader(dataset=val_data,
-                                       batch_size=28,
+                                       batch_size=32,
                                        shuffle=True,
-                                       num_workers=2)
+                                       num_workers=4)
 
     return train_dataloader, val_dataloader
 
@@ -153,7 +153,7 @@ def train_model_process(model, train_dataloader, val_dataloader, num_epochs):
     # 选择最优参数，保存最优参数的模型
     model.load_state_dict(best_model_wts)
     # torch.save(model.load_state_dict(best_model_wts), "C:/Users/86159/Desktop/LeNet/best_model.pth")
-    torch.save(best_model_wts, "C:/Users/86159/Desktop/VGG16/best_model.pth")
+    torch.save(best_model_wts, "D:/pytorch learn_win_torch2_8withcuda_126/pytorch_learning/VGG16/best_model.pth")
 
 
     train_process = pd.DataFrame(data={"epoch":range(num_epochs),
