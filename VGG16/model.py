@@ -56,7 +56,7 @@ class VGG16(nn.Module):
             nn.ReLU(),
             nn.Linear(128, 10),
         )
-
+        #权重初始化，必须要有对于VGG，否则效果很差
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
